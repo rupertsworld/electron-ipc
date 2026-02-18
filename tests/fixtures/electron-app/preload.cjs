@@ -7,7 +7,7 @@ function waitForTick() {
 }
 
 async function setup() {
-  const builtIndex = pathToFileURL(path.resolve(__dirname, '../../.tmp/dist/index.js')).href;
+  const builtIndex = pathToFileURL(path.resolve(__dirname, '../../dist/index.js')).href;
   const { enableIPCBridge, resolveIPCService } = await import(builtIndex);
 
   const bridge = enableIPCBridge();

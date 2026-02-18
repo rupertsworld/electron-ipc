@@ -1,5 +1,4 @@
-tests/.tmp/
-tests/.e2e-build/
+tests/dist/
 example/dist/
 dist/
 node_modules/

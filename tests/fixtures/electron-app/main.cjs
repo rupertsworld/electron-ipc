@@ -6,7 +6,7 @@ async function main() {
   app.commandLine.appendSwitch('noerrdialogs');
   app.disableHardwareAcceleration();
 
-  const builtIndex = pathToFileURL(path.resolve(__dirname, '../../.tmp/dist/index.js')).href;
+  const builtIndex = pathToFileURL(path.resolve(__dirname, '../../dist/index.js')).href;
   const { IPCService, createIPCService } = await import(builtIndex);
 
   class MyService extends IPCService {

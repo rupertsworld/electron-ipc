@@ -7,20 +7,6 @@ Minimal Electron app that demonstrates:
 - updating UI with method result + event payload
 - typed service contracts with `resolveIPCService<ICounterService>(...)`
 
-## Structure
-
-```text
-example/
-  src/
-    main/main.ts
-    preload/preload.ts
-    renderer/
-      index.html
-      renderer.ts
-    shared/types.ts
-  dist/ (generated)
-```
-
 ## Run
 
 From `electron-ipc/example`:

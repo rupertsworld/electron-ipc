@@ -9,11 +9,11 @@ import { beforeAll, describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
-const e2eTmpDir = path.resolve(__dirname, './.tmp');
+const e2eBuildDir = path.resolve(__dirname, './dist');
 const runElectronE2E = process.env.ELECTRON_E2E === '1';
 
 function ensureE2EBuild(): void {
-  rmSync(e2eTmpDir, { recursive: true, force: true });
+  rmSync(e2eBuildDir, { recursive: true, force: true });
 
   const tsconfigPath = path.resolve(__dirname, './fixtures/tsconfig.e2e.json');
   const bin = path.resolve(projectRoot, './node_modules/.bin/tsc');
@@ -31,7 +31,7 @@ function ensureE2EBuild(): void {
 }
 
 function cleanupE2EBuild(): void {
-  rmSync(e2eTmpDir, { recursive: true, force: true });
+  rmSync(e2eBuildDir, { recursive: true, force: true });
 }
 
 function runElectronFixture(): Promise<{
