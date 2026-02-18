@@ -2,7 +2,7 @@
 
 Typed, service-oriented IPC for Electron apps.
 
-`@rupertsworld/electron-ipc` lets renderer code call main-process services as if they were local objects, while preserving typed event payloads and a familiar emitter API (`on`, `once`, `off`).
+`@rupertsworld/electron-ipc` lets renderer code call main-process services as if they were local objects, with typed event payloads.
 
 ## Why use this
 
@@ -95,22 +95,6 @@ npm run --prefix example start
 
 Full API reference: [`docs/api.md`](./docs/api.md)
 
-This keeps the README focused on onboarding while the reference covers:
+## Contributing
 
-- exact method signatures
-- runtime behavior and error model
-- dependency injection hooks for tests/custom wiring
-- renderer type mapping details
-
-## Testing
-
-- `npm run test` runs unit + boundary integration tests.
-- `npm run test:all` runs default tests plus real Electron process integration tests.
-- `npm run test:electron` runs real Electron process integration tests.
-  - Requires a host environment that can launch Electron windows.
-  - Enabled via `ELECTRON_E2E=1`.
-
-## Build and publish
-
-- `npm run build` emits `dist/` with ESM JavaScript and `.d.ts` types.
-- `npm publish` is guarded by `prepublishOnly` and runs type-check, tests, then build.
+See [docs/contributing.md](./docs/contributing.md)
