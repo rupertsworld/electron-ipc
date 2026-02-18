@@ -14,9 +14,9 @@ function appendLog(message: string): void {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-counterService.on('countUpdated', (payload) => {
-  countEl.textContent = String(payload.count);
-  appendLog(`Received event: ${JSON.stringify(payload)}`);
+counterService.on('countUpdated', ({ count }) => {
+  countEl.textContent = String(count);
+  appendLog(`Received event 'countUpdated': count=${JSON.stringify(count)}`);
 });
 
 buttonEl.addEventListener('click', async () => {
