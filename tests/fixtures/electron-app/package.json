@@ -1,0 +1,5 @@
+{
+  "name": "electron-ipc-e2e-app",
+  "private": true,
+  "main": "./main.cjs"
+}

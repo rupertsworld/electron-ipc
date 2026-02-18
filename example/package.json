@@ -1,0 +1,12 @@
+{
+  "name": "electron-ipc-example",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build:lib": "npm run --prefix .. build",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build:app": "npm run clean && node ../node_modules/typescript/bin/tsc -p ./tsconfig.json && node -e \"require('node:fs').cpSync('./src/renderer/index.html', './dist/renderer/index.html')\"",
+    "start": "npm run build:lib && npm run build:app && node ../node_modules/electron/cli.js ./dist/main/main.js"
+  }
+}

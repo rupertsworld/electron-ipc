@@ -1,0 +1,5 @@
+tests/.tmp/
+tests/.e2e-build/
+example/dist/
+dist/
+node_modules/

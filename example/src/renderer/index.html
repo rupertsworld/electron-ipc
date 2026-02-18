@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+    />
+    <title>electron-ipc example</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 24px;
+        line-height: 1.4;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      #count {
+        font-weight: 700;
+        font-size: 20px;
+      }
+      #status {
+        color: #444;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      #log {
+        margin: 8px 0 0;
+        padding-left: 18px;
+        max-height: 110px;
+        overflow-y: auto;
+        color: #444;
+        font-size: 12px;
+      }
+      button {
+        border: 1px solid #999;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>electron-ipc example</h2>
+      <div class="row">
+        <span>Count:</span>
+        <span id="count">0</span>
+      </div>
+      <div class="row">
+        <button id="increment" type="button">Increment via IPC Service</button>
+      </div>
+      <div id="status">Log</div>
+      <ul id="log">
+        <li>Ready.</li>
+      </ul>
+    </div>
+
+    <script type="module" src="./renderer.js"></script>
+  </body>
+</html>

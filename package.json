@@ -1,0 +1,41 @@
+{
+  "name": "@rupertsworld/electron-ipc",
+  "version": "0.1.0",
+  "description": "Typed, service-oriented IPC for Electron applications.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:all": "ELECTRON_E2E=1 vitest run",
+    "test:watch": "vitest",
+    "test:electron": "ELECTRON_E2E=1 vitest run tests/electron-process.integration.test.ts",
+    "prepublishOnly": "npm run type-check && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "electron": "^37.4.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
