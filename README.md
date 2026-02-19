@@ -20,7 +20,7 @@ npm install @rupertsworld/electron-ipc
 First, define the API you want to call from renderer:
 
 ```ts
-// main/my-service.ts
+// main/my-api.ts
 import { IPCService } from '@rupertsworld/electron-ipc';
 
 export type MyAPIEvents = {
@@ -39,10 +39,10 @@ Next, expose the IPC service in your main process, and set up the preload script
 ```ts
 // main/index.ts
 import { exposeIPC, getPreloadPath } from '@rupertsworld/electron-ipc';
-import { MyService } from './my-service.ts';
+import { MyAPI } from './my-api.ts';
 import { BrowserWindow } from 'electron';
 
-exposeIPC(MyService);
+exposeIPC(MyAPI);
 
 const window = new BrowserWindow({
   webPreferences: {
@@ -56,9 +56,9 @@ Now, simply resolve your API and start using it!
 ```ts
 // renderer/index.ts
 import { resolveIPC } from '@rupertsworld/electron-ipc/renderer';
-import type { MyAPI } from '../main/my-service.ts';
+import type { MyAPI } from '../main/my-api.ts';
 
-const api = resolveIPC<MyAPI>('MyService');
+const api = resolveIPC<MyAPI>('MyAPI');
 
 api.on('greeting', ({ text }) => {
   console.log(text);
