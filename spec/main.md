@@ -7,7 +7,7 @@ This document defines required behavior for an Electron IPC abstraction package 
 - Typed request/response RPC calls
 - Typed event emission from main services to renderer subscribers
 
-This is a behavior spec only. Implementation details are left up to the implementer.
+This is a behavior-first spec. It also includes required architectural constraints where needed to guarantee deterministic cross-environment behavior.
 
 ## Goals
 
@@ -16,6 +16,12 @@ This is a behavior spec only. Implementation details are left up to the implemen
 - Make errors and invalid usage deterministic and testable.
 - Support event-driven patterns from services (e.g. `greeting` updates).
 - Developers should not have to know that IPC exists.
+
+## Runtime compatibility contract
+
+This package must support both ESM and CommonJS consumer projects for main-process usage.
+
+The API contract in this spec (`exposeIPC`, `resolveIPC`, `getPreloadPath`, `enableIPC`) applies across both module systems.
 
 ## Defining a service shape
 
@@ -47,11 +53,58 @@ export class MyService extends IPCService<MyServiceEvents> implements IMyService
 
 ### Connecting the preload bridge
 
-The preload layer must expose the bridge with a function like `enableIPCBridge()`. Main and renderer usage assumes this bridge has been enabled before renderer code resolves services.
+Default usage must not require consumers to author or bundle a preload file. The package must ship a ready-to-use CommonJS preload script and expose `getPreloadPath()` for `BrowserWindow` configuration.
 
 ```ts
-enableIPCBridge();
+import { getPreloadPath } from '@rupertsworld/electron-ipc';
+
+new BrowserWindow({
+  webPreferences: {
+    preload: getPreloadPath(),
+  },
+});
 ```
+
+The shipped preload script is responsible for enabling the bridge before renderer code resolves services.
+
+For advanced usage, the package should still expose `enableIPC()` so consumers can author a custom preload when they need non-default behavior.
+
+```ts
+import { enableIPC } from '@rupertsworld/electron-ipc';
+
+enableIPC();
+```
+
+### Preload path resolution requirements
+
+`getPreloadPath()` must return an absolute path to the shipped preload script and must be stable across normal Electron build setups.
+
+Required strategy:
+
+1. Resolve the package main entry with `createRequire(import.meta.url).resolve('@rupertsworld/electron-ipc')`.
+2. Compute the sibling `preload.cjs` path in the same built output directory.
+3. Return that absolute path.
+
+Why this strategy is required:
+
+- It works when consumers do not bundle main-process code.
+- It works with standard Electron bundler defaults where dependencies remain externalized in `node_modules` (including common `electron-vite` defaults).
+- It avoids fragile relative resolution tied to `import.meta.url` or cwd assumptions.
+- It does not require extra consumer setup beyond normal dependency installation.
+
+If resolution fails at runtime, the function must throw a deterministic error that clearly states preload path resolution failed.
+
+### Electron module loading strategy
+
+Main and preload runtime modules should use direct `electron` imports rather than `globalThis.require` indirection.
+
+Rationale:
+
+- It matches standard Electron ecosystem behavior.
+- It keeps runtime behavior explicit and predictable.
+- It removes special-case runtime hacks that exist only to bypass module loading.
+
+Tests can use standard module mocking for `electron` in unit suites, with real Electron process coverage in integration suites.
 
 ## Registering a service
 
@@ -113,9 +166,19 @@ Emitter behavior follows familiar conventions:
 
 ### Preload bridge
 
-- should expose bridge APIs to renderer only after `enableIPCBridge()` is executed in preload.
-- should fail predictably when renderer resolves a service before the preload bridge is enabled.
-- should allow renderer service resolution after preload bridge is enabled.
+- should return an absolute existing file path from `getPreloadPath()`.
+- should return a path whose basename is `preload.cjs`.
+- should return the same path regardless of process cwd.
+- should return the same path regardless of process cwd when called from nested consumer directories (for example `example/`).
+- should ensure shipped `preload.cjs` does not rely on Node built-ins unavailable in sandboxed preload runtimes.
+- should expose bridge APIs to renderer when `BrowserWindow` preload is configured with `getPreloadPath()`.
+- should fail predictably when renderer resolves a service before the bridge is enabled.
+- should allow renderer service resolution after bridge enablement using both shipped preload and custom `enableIPC()` preload.
+
+### Main-process module loading
+
+- should allow creating and registering services in main with direct `electron` imports and no runtime `requireElectron` helper path.
+- should keep unit tests deterministic via `electron` module mocking without requiring a live Electron runtime.
 
 ### Service registration in main
 
@@ -158,14 +221,4 @@ Emitter behavior follows familiar conventions:
 
 ### Electron boundary integration
 
-Execution note: these tests run in a dedicated real-Electron integration suite and may require an explicit opt-in flag (for example `ELECTRON_E2E=1`) plus a host environment capable of launching Electron windows. These tests MUST test an actual electron app instance end-to-end.
-
-- should perform end-to-end service invocation across preload, renderer, and main using real Electron IPC transport.
-- should perform end-to-end event delivery from main service `emit(...)` to renderer `on(...)` listener across real Electron IPC transport.
-- should keep service channels isolated so one service's calls and events do not cross into another service.
-- should preserve emitted payload shape across the Electron process boundary for plain object payloads.
-- should surface main-side method failure in renderer as a rejected async call across real Electron IPC transport.
-- should handle parallel in-flight calls without mixing responses between call sites.
-- should fail renderer resolution immediately for an unregistered service in an end-to-end Electron integration scenario.
-- should verify duplicate registration failure behavior in an end-to-end Electron integration scenario.
-- should verify that pre-listener events are not replayed in an end-to-end Electron integration scenario.
+Real Electron end-to-end coverage is specified in `spec/integration-test.md`. Source tests for that suite should mirror wording from that document.

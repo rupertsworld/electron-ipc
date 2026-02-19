@@ -10,6 +10,8 @@ From the package root:
 npm install
 ```
 
+Note for local consumers (`file:../electron-ipc`): the package runs `prepare` (`npm run build`) on install so `dist/*` is always present for exports like `./renderer`. After changing this package, reinstall in the consumer workspace to refresh the linked package snapshot.
+
 ## Development workflow
 
 - Make focused changes with matching tests.
@@ -26,7 +28,10 @@ npm install
 
 ## Build
 
-- `npm run build` emits `dist/` with ESM JavaScript and `.d.ts` types.
+- `npm run build` emits:
+  - `dist/` ESM JavaScript + `.d.ts` types
+  - `dist/cjs/` CommonJS JavaScript
+  - shipped preload scripts at `dist/preload.cjs` and `dist/cjs/preload.cjs`
 
 ## Publishing
 

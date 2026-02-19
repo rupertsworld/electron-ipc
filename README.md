@@ -50,39 +50,40 @@ export class MyService extends IPCService<MyServiceEvents> implements IMyService
 
 ```ts
 // main/index.ts
-import { createIPCService } from '@rupertsworld/electron-ipc';
+import { exposeIPC, getPreloadPath } from '@rupertsworld/electron-ipc';
 import { MyService } from './my-service.ts';
+import { BrowserWindow } from 'electron';
 
-createIPCService('MyService', MyService);
+exposeIPC(MyService);
+
+const window = new BrowserWindow({
+  webPreferences: {
+    preload: getPreloadPath(),
+  },
+});
 ```
 
-### 3) Enable bridge in preload
+### 3) Advanced: custom preload
 
 ```ts
 // preload.ts
-import { enableIPCBridge } from '@rupertsworld/electron-ipc';
+import { enableIPC } from '@rupertsworld/electron-ipc';
 
-enableIPCBridge();
+enableIPC();
 ```
 
-**Preload must be built before use.** Electron’s preload script runs in a context that does not support ES modules. Do not point `webPreferences.preload` at a raw `.ts` or ESM file—it will fail at runtime (“Cannot use import statement outside a module”). Build the preload to a single script (e.g. CommonJS) and pass that path to Electron.
+Use `getPreloadPath()` by default. Use custom preload + `enableIPC()` when you need to own preload wiring (for example adding other preload-only APIs, custom security checks, or project-specific preload boot order).
 
-For example, using `esbuild`:
-
-```json
-"scripts": {
-  "build:preload": "esbuild src/main/preload.ts --bundle --platform=node --format=cjs --outfile=dist/preload.js"
-}
-```
+Important: a consumer-authored preload must be emitted in a format Electron preload can execute in your app setup (commonly bundled/transformed to CJS). Do not point `webPreferences.preload` at raw TypeScript source.
 
 ### 4) Resolve and use in renderer
 
 ```ts
 // renderer/index.ts
-import { resolveIPCService } from '@rupertsworld/electron-ipc';
+import { resolveIPC } from '@rupertsworld/electron-ipc/renderer';
 import type { IMyService } from '../shared/my-service.ts';
 
-const myService = resolveIPCService<IMyService>('MyService');
+const myService = resolveIPC<IMyService>('MyService');
 
 myService.on('greeting', ({ text }) => {
   console.log(text);
@@ -90,6 +91,8 @@ myService.on('greeting', ({ text }) => {
 
 await myService.hello('Rupert'); // Hello Rupert
 ```
+
+Renderer note: import renderer APIs from `@rupertsworld/electron-ipc/renderer`. Use the root package entry for main/preload APIs (`exposeIPC`, `getPreloadPath`, `enableIPC`, `IPCService`).
 
 ## Try the example app
 

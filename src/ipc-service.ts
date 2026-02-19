@@ -12,8 +12,7 @@ export class IPCService<TEvents extends EventMap = EventMap> {
   private emitHook?: EmitHook<TEvents>;
 
   on<K extends keyof TEvents>(eventName: K, listener: Listener<TEvents[K]>): this {
-    const listeners = this.ensureListenerSet(eventName);
-    listeners.add(listener as Listener<TEvents[keyof TEvents]>);
+    this.ensureListenerSet(eventName).add(listener as Listener<TEvents[keyof TEvents]>);
     return this;
   }
 
@@ -30,7 +29,6 @@ export class IPCService<TEvents extends EventMap = EventMap> {
     if (!listeners) {
       return this;
     }
-
     listeners.delete(listener as Listener<TEvents[keyof TEvents]>);
     if (listeners.size === 0) {
       this.listeners.delete(eventName);
@@ -41,16 +39,14 @@ export class IPCService<TEvents extends EventMap = EventMap> {
   emit<K extends keyof TEvents>(eventName: K, payload: TEvents[K]): this {
     const listeners = this.listeners.get(eventName);
     if (listeners) {
-      // Snapshot avoids mutation issues while dispatching.
       for (const listener of [...listeners]) {
         try {
           (listener as Listener<TEvents[K]>)(payload);
         } catch {
-          // Listener failures must not prevent delivery to other listeners.
+          // Listener failures must not block remaining listeners.
         }
       }
     }
-
     this.emitHook?.(eventName, payload);
     return this;
   }
@@ -64,7 +60,6 @@ export class IPCService<TEvents extends EventMap = EventMap> {
     if (existing) {
       return existing;
     }
-
     const created = new Set<Listener<TEvents[keyof TEvents]>>();
     this.listeners.set(eventName, created);
     return created;

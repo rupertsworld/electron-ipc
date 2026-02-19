@@ -5,9 +5,10 @@ This reference documents the public developer-facing API for `@rupertsworld/elec
 ## Core exports
 
 - `IPCService<TEvents>`
-- `createIPCService(serviceName, serviceOrCtor, deps?)`
-- `enableIPCBridge(deps?)`
-- `resolveIPCService<T>(serviceName)`
+- `exposeIPC(serviceOrCtor, serviceName?, deps?)`
+- `getPreloadPath()`
+- `enableIPC(deps?)`
+- `resolveIPC<T>(serviceName)` from `@rupertsworld/electron-ipc/renderer`
 
 ---
 
@@ -30,14 +31,14 @@ Base class for main-process services that emit typed events.
 
 ---
 
-## `createIPCService(serviceName, serviceOrCtor, deps?)`
+## `exposeIPC(serviceOrCtor, serviceName?, deps?)`
 
 Registers a service in the main process.
 
 ### Parameters
 
-- `serviceName: string`
 - `serviceOrCtor: object | new () => object`
+- `serviceName?: string` (defaults to constructor name)
 - `deps` (optional runtime injection for tests/custom wiring):
   - `ipcMain`
   - `eventBus`
@@ -46,7 +47,7 @@ When `deps` is omitted, Electron defaults are resolved at runtime from the host 
 
 ### Behavior
 
-- Duplicate `serviceName` registration throws.
+- Duplicate resolved service name registration throws.
 - Service can be provided as class constructor or instance.
 - Service methods are invoked by renderer RPC calls.
 - Missing/non-callable methods reject with contextual errors.
@@ -54,7 +55,20 @@ When `deps` is omitted, Electron defaults are resolved at runtime from the host 
 
 ---
 
-## `enableIPCBridge(deps?)`
+## `getPreloadPath()`
+
+Returns an absolute path to the package-shipped preload script (`preload.cjs`).
+
+### Behavior
+
+- Returns an absolute path.
+- Returned path points at an existing file.
+- Path is stable across process cwd changes.
+- Throws deterministic error text if path resolution fails.
+
+---
+
+## `enableIPC(deps?)`
 
 Sets up preload bridge APIs and exposes them on `window.ipcServiceBridge`.
 
@@ -68,7 +82,7 @@ When omitted, Electron defaults are resolved at runtime from the host app.
 
 ### Behavior
 
-- Must be called before renderer uses `resolveIPCService(...)`.
+- Must be called before renderer uses `resolveIPC(...)`.
 - Exposes bridge methods:
   - `invoke(serviceName, methodName, args)`
   - `hasService(serviceName)`
@@ -76,9 +90,13 @@ When omitted, Electron defaults are resolved at runtime from the host app.
 
 ---
 
-## `resolveIPCService<T>(serviceName)`
+## `resolveIPC<T>(serviceName)`
 
 Resolves a typed renderer-facing proxy for a registered main service.
+
+Import path:
+
+- `import { resolveIPC } from '@rupertsworld/electron-ipc/renderer'`
 
 ### Behavior
 
@@ -92,7 +110,7 @@ Resolves a typed renderer-facing proxy for a registered main service.
 - Use shared interfaces like:
   - `interface IMyService extends IPCService<MyServiceEvents> { ... }`
 - Resolve with:
-  - `const service = resolveIPCService<IMyService>('MyService')`
+  - `const service = resolveIPC<IMyService>('MyService')`
 
 This keeps event payloads and method signatures typed in renderer usage.
 
