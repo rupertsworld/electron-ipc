@@ -44,11 +44,13 @@ it('should reject invalid event payload property access at compile time in rende
   });
 });
 
-it('should allow createIPCService(serviceName, ServiceClass) API shape', () => {
+it('should allow createIPCService(ServiceClass) with optional name', () => {
   expectTypeOf(createIPCService).toBeFunction();
   class Example extends IPCService<Events> {
     hello(_name: string): void {}
   }
-  type Signature = (serviceName: string, ctor: typeof Example) => void;
-  expectTypeOf(createIPCService).toMatchTypeOf<Signature>();
+  type WithoutName = (ctor: typeof Example) => void;
+  type WithName = (ctor: typeof Example, name: string) => void;
+  expectTypeOf(createIPCService).toMatchTypeOf<WithoutName>();
+  expectTypeOf(createIPCService).toMatchTypeOf<WithName>();
 });

@@ -46,11 +46,11 @@ async function main() {
 
   await app.whenReady();
 
-  createIPCService('MyService', MyService);
-  createIPCService('OtherService', OtherService);
+  createIPCService(MyService);
+  createIPCService(OtherService);
   let duplicateRegistrationError = '';
   try {
-    createIPCService('MyService', MyService);
+    createIPCService(MyService);
   } catch (error) {
     duplicateRegistrationError = error instanceof Error ? error.message : String(error);
   }

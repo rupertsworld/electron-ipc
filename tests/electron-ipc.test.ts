@@ -165,18 +165,42 @@ describe('electron-ipc', () => {
     expect(() => resolveIPCService<IMyService>('MyService')).toThrow(/enableIPCBridge/i);
   });
 
-  it('should register a service class under a stable service name', async () => {
+  it('should register a service class using its class name when no explicit name is provided', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
+    await expect(service.hello('Bob')).resolves.toBe('Hello Bob');
+  });
+
+  it('should register a service class under a custom name when one is provided', async () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(MyService, 'Custom', { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    const service = resolveIPCService<IMyService>('Custom');
+    await expect(service.hello('Bob')).resolves.toBe('Hello Bob');
+  });
+
+  it('should register an already-created instance using its constructor name when no explicit name is provided', async () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(new MyService(), undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    const service = resolveIPCService<IMyService>('MyService');
+    await expect(service.hello('Bob')).resolves.toBe('Hello Bob');
+  });
+
+  it('should register an already-created instance under a custom name when one is provided', async () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(new MyService(), 'CustomInstance', { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    const service = resolveIPCService<IMyService>('CustomInstance');
     await expect(service.hello('Bob')).resolves.toBe('Hello Bob');
   });
 
   it('should allow renderer service resolution after preload bridge is enabled', async () => {
     const harness = createBoundaryHarness();
     enableIPCBridge({ contextBridge: harness.contextBridge, ipcRenderer: harness.ipcRenderer });
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     await expect(service.sum(2, 3)).resolves.toBe(5);
@@ -184,17 +208,17 @@ describe('electron-ipc', () => {
 
   it('should fail when registering the same service name more than once', () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     expect(() =>
-      createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus }),
+      createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus }),
     ).toThrow(/already registered/i);
   });
 
   it('should allow registering multiple distinct service names in the same process', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
-    createIPCService('OtherService', OtherService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(OtherService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const my = resolveIPCService<IMyService>('MyService');
     const other = resolveIPCService<IOtherService>('OtherService');
@@ -203,14 +227,37 @@ describe('electron-ipc', () => {
     await expect(other.ping(9)).resolves.toBe(9);
   });
 
+  it('should resolve a service registered with default class name', async () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    const service = resolveIPCService<IMyService>('MyService');
+    await expect(service.sum(2, 3)).resolves.toBe(5);
+  });
+
+  it('should resolve a service registered with a custom name using that custom name', async () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(MyService, 'Aliased', { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    const service = resolveIPCService<IMyService>('Aliased');
+    await expect(service.sum(10, 20)).resolves.toBe(30);
+  });
+
   it('should fail immediately when resolving a service name that is not registered', () => {
     setupBridgeAndServices();
     expect(() => resolveIPCService<IMyService>('MissingService')).toThrow(/not registered/i);
   });
 
+  it('should fail when resolving by class name if the service was registered with a custom name', () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(MyService, 'NotMyService', { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    expect(() => resolveIPCService<IMyService>('MyService')).toThrow(/not registered/i);
+  });
+
   it('should allow resolving the same registered service name from multiple renderer call sites', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const first = resolveIPCService<IMyService>('MyService');
     const second = resolveIPCService<IMyService>('MyService');
@@ -221,7 +268,7 @@ describe('electron-ipc', () => {
 
   it('should pass method arguments from renderer to main in the original order', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     await expect(service.sum(11, 7)).resolves.toBe(18);
@@ -229,7 +276,7 @@ describe('electron-ipc', () => {
 
   it('should invoke registered service methods from renderer and complete asynchronously', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
     const service = resolveIPCService<IMyService>('MyService');
 
     const promise = service.sum(1, 1);
@@ -239,7 +286,7 @@ describe('electron-ipc', () => {
 
   it('should return method results from main to renderer correctly across IPC', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     await expect(service.hello('Rupert')).resolves.toBe('Hello Rupert');
@@ -247,7 +294,7 @@ describe('electron-ipc', () => {
 
   it('should reject when calling a method name that does not exist on the registered service', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService') as unknown as Record<
       string,
@@ -256,9 +303,22 @@ describe('electron-ipc', () => {
     await expect(service.notAMethod()).rejects.toThrow(/no callable method/i);
   });
 
+  it('should reject when calling reserved framework method names as service methods', async () => {
+    const harness = setupBridgeAndServices();
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+
+    const service = resolveIPCService<IMyService>('MyService') as unknown as Record<
+      string,
+      (...args: readonly unknown[]) => Promise<unknown>
+    >;
+    for (const reserved of ['emit', 'setEmitHook', 'constructor']) {
+      await expect(service[reserved]()).rejects.toThrow(/no callable method/i);
+    }
+  });
+
   it('should include service and method context in missing-method rejection errors', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService') as unknown as Record<
       string,
@@ -270,7 +330,7 @@ describe('electron-ipc', () => {
 
   it('should reject when attempting to invoke a non-callable member name on the registered service', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService') as unknown as Record<
       string,
@@ -281,7 +341,7 @@ describe('electron-ipc', () => {
 
   it('should propagate thrown method errors from main to renderer with original error message when feasible', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     await expect(service.explode()).rejects.toThrow(/boom/);
@@ -291,7 +351,7 @@ describe('electron-ipc', () => {
 
   it('should provide deterministic fallback error text with service and method context when full error transport is not feasible', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     await expect(service.weirdError()).rejects.toThrow(/MyService/);
@@ -300,7 +360,7 @@ describe('electron-ipc', () => {
 
   it('should emit events from main service methods and deliver typed payloads to renderer listeners', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     const received: string[] = [];
@@ -314,7 +374,7 @@ describe('electron-ipc', () => {
 
   it('should deliver the same emitted event to all listeners currently attached for that event', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     const receivedA: string[] = [];
@@ -330,7 +390,7 @@ describe('electron-ipc', () => {
 
   it('should invoke a once listener exactly once across multiple emissions of the same event', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     const listener = vi.fn();
@@ -343,7 +403,7 @@ describe('electron-ipc', () => {
 
   it('should remove a listener with off(event, listener) so it does not receive future emissions', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     const received: string[] = [];
@@ -357,7 +417,7 @@ describe('electron-ipc', () => {
 
   it('should treat off(event, listener) as a silent no-op when the listener is not currently registered', () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const service = resolveIPCService<IMyService>('MyService');
     expect(() => service.off('greeting', () => undefined)).not.toThrow();
@@ -366,7 +426,7 @@ describe('electron-ipc', () => {
   it('should drop events emitted before listeners are attached (no replay)', async () => {
     const harness = setupBridgeAndServices();
     const instance = new MyService();
-    createIPCService('MyService', instance, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(instance, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     instance.emit('greeting', { text: 'before' });
     const received: string[] = [];
@@ -380,7 +440,7 @@ describe('electron-ipc', () => {
   it('should continue delivering an event to remaining listeners when one listener throws', async () => {
     const harness = setupBridgeAndServices();
     const instance = new MyService();
-    createIPCService('MyService', instance, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(instance, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
     const service = resolveIPCService<IMyService>('MyService');
 
     const safe = vi.fn();
@@ -395,8 +455,8 @@ describe('electron-ipc', () => {
 
   it("should keep service channels isolated so one service's calls and events do not cross into another service", async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
-    createIPCService('OtherService', OtherService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(OtherService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
 
     const my = resolveIPCService<IMyService>('MyService');
     const other = resolveIPCService<IOtherService>('OtherService');
@@ -415,7 +475,7 @@ describe('electron-ipc', () => {
 
   it('should handle parallel in-flight calls without mixing responses between call sites', async () => {
     const harness = setupBridgeAndServices();
-    createIPCService('MyService', MyService, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
+    createIPCService(MyService, undefined, { ipcMain: harness.ipcMain, eventBus: harness.eventBus });
     const service = resolveIPCService<IMyService>('MyService');
 
     const [first, second, third] = await Promise.all([

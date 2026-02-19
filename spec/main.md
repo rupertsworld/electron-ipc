@@ -55,19 +55,21 @@ enableIPCBridge();
 
 ## Registering a service
 
-Register the service in main under a stable name. That name is how renderer code resolves and calls it.
+Register the service in main. The first argument is the service class constructor or an already-created instance. The second argument is an optional service name string used for resolution.
 
-The registered service may be provided as either a class constructor or an already-created instance.
+When the name is omitted, the service name defaults to the class name (i.e. `constructor.name`). For a class constructor `MyService`, the default name is `'MyService'`. For an instance `new MyService()`, the default name is also `'MyService'`.
 
 Registering the same service name more than once must fail with an error.
 
 ```ts
-createIPCService('MyService', MyService);
+createIPCService(MyService);                    // registered as 'MyService'
+createIPCService(MyService, 'CustomName');       // registered as 'CustomName'
+createIPCService(new MyService(), 'AnotherName'); // instance with explicit name
 ```
 
 ## Resolving a service
 
-Resolve the service in renderer using the same name and shared interface. Calls should feel like normal service calls while running across IPC.
+Resolve the service in renderer by the name it was registered under. When the service was registered without an explicit name, resolve using the class name. Calls should feel like normal service calls while running across IPC.
 
 Resolving a service name that is not registered in main must fail immediately at resolve time.
 
@@ -78,7 +80,12 @@ Calling reserved framework method names (for example `on`, `off`, `once`, `emit`
 If a service method throws, renderer should receive the original error message when feasible. If full error transport is not feasible, a deterministic fallback error message must still include service and method context.
 
 ```ts
+// resolve by default class name
 const myService = resolveIPCService<IMyService>('MyService');
+
+// resolve by explicit custom name
+const custom = resolveIPCService<IMyService>('CustomName');
+
 const onGreeting = (payload: { text: string }) => console.log(payload.text);
 myService.on('greeting', onGreeting);
 await myService.hello('Bob');
@@ -118,14 +125,19 @@ Emitter behavior follows familiar conventions:
 
 ### Service registration in main
 
-- should register a service class under a stable service name.
+- should register a service class using its class name when no explicit name is provided.
+- should register a service class under a custom name when one is provided.
+- should register an already-created instance using its constructor name when no explicit name is provided.
+- should register an already-created instance under a custom name when one is provided.
 - should fail when registering the same service name more than once.
 - should allow registering multiple distinct service names in the same process.
 
 ### Service resolution in renderer
 
-- should resolve a registered service by name.
+- should resolve a service registered with default class name.
+- should resolve a service registered with a custom name using that custom name.
 - should fail immediately when resolving a service name that is not registered.
+- should fail when resolving by class name if the service was registered with a custom name.
 - should allow resolving the same registered service name from multiple renderer call sites.
 
 ### RPC method invocation behavior

@@ -37,7 +37,7 @@ function createWindow(): void {
 }
 
 void app.whenReady().then(() => {
-  createIPCService('CounterService', CounterService);
+  createIPCService(CounterService);
   createWindow();
 
   app.on('activate', () => {

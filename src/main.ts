@@ -54,35 +54,38 @@ function methodCallError(serviceName: string, methodName: string, error: unknown
 }
 
 export function createIPCService<T extends object>(
-  serviceName: string,
   serviceOrCtor: T | ServiceCtor<T>,
+  serviceName?: string,
   deps?: { ipcMain: IpcMainLike; eventBus: EventBusLike },
 ): void {
   const resolvedDeps = deps ?? resolveDefaultDeps();
 
-  if (registeredServices.has(serviceName)) {
-    throw new Error(`[electron-ipc] Service "${serviceName}" is already registered`);
+  const isConstructor = typeof serviceOrCtor === 'function';
+  const resolvedName = serviceName ??
+    (isConstructor ? (serviceOrCtor as ServiceCtor<T>).name : serviceOrCtor.constructor.name);
+
+  if (registeredServices.has(resolvedName)) {
+    throw new Error(`[electron-ipc] Service "${resolvedName}" is already registered`);
   }
 
-  const service =
-    typeof serviceOrCtor === 'function' ? new (serviceOrCtor as ServiceCtor<T>)() : (serviceOrCtor as T);
-  registeredServices.set(serviceName, service);
+  const service = isConstructor ? new (serviceOrCtor as ServiceCtor<T>)() : (serviceOrCtor as T);
+  registeredServices.set(resolvedName, service);
 
   if (service instanceof IPCService) {
     service.setEmitHook((eventName, payload) => {
-      resolvedDeps.eventBus.broadcast(serviceName, String(eventName), payload);
+      resolvedDeps.eventBus.broadcast(resolvedName, String(eventName), payload);
     });
   }
 
   resolvedDeps.ipcMain.handle(
-    serviceInvokeChannel(serviceName),
+    serviceInvokeChannel(resolvedName),
     async (_event: unknown, methodName: string, args: readonly unknown[]) => {
       if (RESERVED_METHOD_NAMES.has(methodName)) {
-        throw missingMethodError(serviceName, methodName);
+        throw missingMethodError(resolvedName, methodName);
       }
       const methodCandidate = (service as Record<string, unknown>)[methodName];
       if (typeof methodCandidate !== 'function') {
-        throw missingMethodError(serviceName, methodName);
+        throw missingMethodError(resolvedName, methodName);
       }
 
       try {
@@ -90,7 +93,7 @@ export function createIPCService<T extends object>(
           (methodCandidate as (...runtimeArgs: readonly unknown[]) => unknown).apply(service, [...args]),
         );
       } catch (error) {
-        throw methodCallError(serviceName, methodName, error);
+        throw methodCallError(resolvedName, methodName, error);
       }
     },
   );
