@@ -65,6 +65,16 @@ import { enableIPCBridge } from '@rupertsworld/electron-ipc';
 enableIPCBridge();
 ```
 
+**Preload must be built before use.** Electron’s preload script runs in a context that does not support ES modules. Do not point `webPreferences.preload` at a raw `.ts` or ESM file—it will fail at runtime (“Cannot use import statement outside a module”). Build the preload to a single script (e.g. CommonJS) and pass that path to Electron.
+
+For example, using `esbuild`:
+
+```json
+"scripts": {
+  "build:preload": "esbuild src/main/preload.ts --bundle --platform=node --format=cjs --outfile=dist/preload.js"
+}
+```
+
 ### 4) Resolve and use in renderer
 
 ```ts

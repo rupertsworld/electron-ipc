@@ -62,9 +62,8 @@ When the name is omitted, the service name defaults to the class name (i.e. `con
 Registering the same service name more than once must fail with an error.
 
 ```ts
-createIPCService(MyService);                    // registered as 'MyService'
-createIPCService(MyService, 'CustomName');       // registered as 'CustomName'
-createIPCService(new MyService(), 'AnotherName'); // instance with explicit name
+exposeIPC(myService);                    // registered as 'MyService'
+exposeIPC(myService, 'CustomName');       // registered as 'CustomName'
 ```
 
 ## Resolving a service
@@ -80,12 +79,7 @@ Calling reserved framework method names (for example `on`, `off`, `once`, `emit`
 If a service method throws, renderer should receive the original error message when feasible. If full error transport is not feasible, a deterministic fallback error message must still include service and method context.
 
 ```ts
-// resolve by default class name
-const myService = resolveIPCService<IMyService>('MyService');
-
-// resolve by explicit custom name
-const custom = resolveIPCService<IMyService>('CustomName');
-
+const myService = resolveIPC<IMyService>('MyService');
 const onGreeting = (payload: { text: string }) => console.log(payload.text);
 myService.on('greeting', onGreeting);
 await myService.hello('Bob');
@@ -164,7 +158,7 @@ Emitter behavior follows familiar conventions:
 
 ### Electron boundary integration
 
-Execution note: these tests run in a dedicated real-Electron integration suite and may require an explicit opt-in flag (for example `ELECTRON_E2E=1`) plus a host environment capable of launching Electron windows.
+Execution note: these tests run in a dedicated real-Electron integration suite and may require an explicit opt-in flag (for example `ELECTRON_E2E=1`) plus a host environment capable of launching Electron windows. These tests MUST test an actual electron app instance end-to-end.
 
 - should perform end-to-end service invocation across preload, renderer, and main using real Electron IPC transport.
 - should perform end-to-end event delivery from main service `emit(...)` to renderer `on(...)` listener across real Electron IPC transport.
