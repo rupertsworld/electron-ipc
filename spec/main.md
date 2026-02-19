@@ -104,6 +104,14 @@ Rationale:
 - It keeps runtime behavior explicit and predictable.
 - It removes special-case runtime hacks that exist only to bypass module loading.
 
+Preload runtime note:
+
+- Preload code must resolve Electron runtime APIs from `electron` and/or `electron/renderer` to obtain `contextBridge` and `ipcRenderer`.
+- Which module surface is available is environment-dependent (for example sandboxed preload contexts may differ from non-sandboxed preload contexts).
+- The shipped preload path and custom `enableIPC()` path must both tolerate this environment variance and still bind the bridge successfully.
+- This does not imply preload consumes main-process APIs such as `ipcMain`, `BrowserWindow`, or `app`.
+- Main-process APIs are used only in main-side service registration paths (for example `exposeIPC(...)`).
+
 Tests can use standard module mocking for `electron` in unit suites, with real Electron process coverage in integration suites.
 
 ## Registering a service
