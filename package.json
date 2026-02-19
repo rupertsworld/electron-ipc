@@ -6,15 +6,18 @@
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.cjs"
     },
     "./renderer": {
       "types": "./dist/renderer.d.ts",
-      "import": "./dist/renderer.js"
+      "import": "./dist/renderer.js",
+      "require": "./dist/cjs/renderer.cjs"
     }
   },
   "files": [
@@ -28,7 +31,11 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "build:esm": "tsc -p tsconfig.build.json",
+    "build:cjs": "tsc -p tsconfig.build.cjs.json && node ./scripts/prepare-cjs.mjs",
+    "copy:preload": "node ./scripts/copy-preload.mjs",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run copy:preload",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:all": "ELECTRON_E2E=1 vitest run",
     "test:watch": "vitest",

@@ -2,8 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { app, BrowserWindow } from 'electron';
-import { createIPCService } from '../../../dist/main.js';
-import { IPCService } from '../../../dist/ipc-service.js';
+import { exposeIPC, getPreloadPath, IPCService } from '../../../dist/index.js';
 import type { CounterServiceEvents, ICounterService } from '../shared/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +25,7 @@ function createWindow(): void {
     minWidth: 460,
     minHeight: 360,
     webPreferences: {
-      preload: path.join(__dirname, './preload.js'),
+      preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -37,7 +36,7 @@ function createWindow(): void {
 }
 
 void app.whenReady().then(() => {
-  createIPCService(CounterService);
+  exposeIPC(CounterService);
   createWindow();
 
   app.on('activate', () => {

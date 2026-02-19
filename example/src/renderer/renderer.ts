@@ -1,11 +1,11 @@
-import { resolveIPCService } from '../../../dist/renderer.js';
+import { resolveIPC } from '../../../dist/renderer.js';
 import type { ICounterService } from '../shared/types.js';
 
 const countEl = document.getElementById('count') as HTMLSpanElement;
 const logEl = document.getElementById('log') as HTMLUListElement;
 const buttonEl = document.getElementById('increment') as HTMLButtonElement;
 
-const counterService = resolveIPCService<ICounterService>('CounterService');
+const counterService = resolveIPC<ICounterService>('CounterService');
 
 function appendLog(message: string): void {
   const item = document.createElement('li');

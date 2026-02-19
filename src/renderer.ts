@@ -1,15 +1,13 @@
-import type { IPCBridgeAPI } from './preload.ts';
+import type { IPCBridgeAPI } from './bridge.ts';
 import type { AsyncService } from './types.ts';
 
 const BRIDGE_KEY = 'ipcServiceBridge';
-
 type AnyListener = (payload: unknown) => void;
 
 function getBridge(): IPCBridgeAPI {
-  const globalValue = globalThis as Record<string, unknown>;
-  const bridge = globalValue[BRIDGE_KEY] as IPCBridgeAPI | undefined;
+  const bridge = (globalThis as Record<string, unknown>)[BRIDGE_KEY] as IPCBridgeAPI | undefined;
   if (!bridge) {
-    throw new Error('[electron-ipc] IPC bridge is not enabled. Call enableIPCBridge() in preload first.');
+    throw new Error('[electron-ipc] IPC bridge is not enabled. Call enableIPC() in preload first.');
   }
   return bridge;
 }
@@ -19,16 +17,12 @@ function normalizeInvokeError(serviceName: string, methodName: string, error: un
     if (error.message.includes(serviceName) && error.message.includes(methodName)) {
       return error;
     }
-    return new Error(
-      `[electron-ipc] Service "${serviceName}" method "${methodName}" failed: ${error.message}`,
-    );
+    return new Error(`[electron-ipc] Service "${serviceName}" method "${methodName}" failed: ${error.message}`);
   }
-  return new Error(
-    `[electron-ipc] Service "${serviceName}" method "${methodName}" failed: ${String(error)}`,
-  );
+  return new Error(`[electron-ipc] Service "${serviceName}" method "${methodName}" failed: ${String(error)}`);
 }
 
-export function resolveIPCService<T extends object>(serviceName: string): AsyncService<T> {
+export function resolveIPC<T extends object>(serviceName: string): AsyncService<T> {
   const bridge = getBridge();
   if (!bridge.hasService(serviceName)) {
     throw new Error(`[electron-ipc] Service "${serviceName}" is not registered`);
@@ -50,7 +44,7 @@ export function resolveIPCService<T extends object>(serviceName: string): AsyncS
         try {
           listener(payload);
         } catch {
-          // Listener failures should not affect remaining listeners.
+          // Listener failures should not prevent delivery to remaining listeners.
         }
       }
     });
@@ -119,6 +113,5 @@ export function resolveIPCService<T extends object>(serviceName: string): AsyncS
 }
 
 export function resetRendererBridgeForTests(): void {
-  const globalValue = globalThis as Record<string, unknown>;
-  delete globalValue[BRIDGE_KEY];
+  delete (globalThis as Record<string, unknown>)[BRIDGE_KEY];
 }

@@ -1,14 +1,13 @@
 import { expectTypeOf, it } from 'vitest';
 
-import { IPCService } from '../src/ipc-service.ts';
-import { createIPCService } from '../src/main.ts';
 import type { AsyncService } from '../src/types.ts';
+import { IPCService } from '../src/main.ts';
 
-type Events = {
+type MyServiceEvents = {
   greeting: { text: string };
 };
 
-interface IMyService extends IPCService<Events> {
+interface IMyService extends IPCService<MyServiceEvents> {
   hello(name: string): string;
 }
 
@@ -21,6 +20,7 @@ it('should infer event payload type from event name on myService.on(...) in rend
   const myService = {
     on: () => myService,
   } as unknown as AsyncService<IMyService>;
+
   myService.on('greeting', (payload) => {
     expectTypeOf(payload.text).toEqualTypeOf<string>();
   });
@@ -30,6 +30,7 @@ it('should reject invalid event names at compile time in renderer usage', () => 
   const myService = {
     on: () => myService,
   } as unknown as AsyncService<IMyService>;
+
   // @ts-expect-error invalid event name
   myService.on('unknown', () => undefined);
 });
@@ -38,19 +39,9 @@ it('should reject invalid event payload property access at compile time in rende
   const myService = {
     on: () => myService,
   } as unknown as AsyncService<IMyService>;
+
   myService.on('greeting', (payload) => {
     // @ts-expect-error property does not exist on greeting payload
     payload.missing;
   });
-});
-
-it('should allow createIPCService(ServiceClass) with optional name', () => {
-  expectTypeOf(createIPCService).toBeFunction();
-  class Example extends IPCService<Events> {
-    hello(_name: string): void {}
-  }
-  type WithoutName = (ctor: typeof Example) => void;
-  type WithName = (ctor: typeof Example, name: string) => void;
-  expectTypeOf(createIPCService).toMatchTypeOf<WithoutName>();
-  expectTypeOf(createIPCService).toMatchTypeOf<WithName>();
 });

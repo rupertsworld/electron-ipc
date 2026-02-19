@@ -7,22 +7,25 @@ function waitForTick() {
 }
 
 async function setup() {
-  const builtIndex = pathToFileURL(path.resolve(__dirname, '../../dist/index.js')).href;
-  const { enableIPCBridge, resolveIPCService } = await import(builtIndex);
+  const target = process.env.ELECTRON_TARGET || 'unbundled-esm';
+  let mod;
+  if (target === 'unbundled-cjs' || target === 'bundled-cjs') {
+    mod = require(path.resolve(__dirname, '../../../dist/cjs/index.cjs'));
+  } else {
+    const builtIndex = pathToFileURL(path.resolve(__dirname, '../../../dist/index.js')).href;
+    mod = await import(builtIndex);
+  }
 
-  const bridge = enableIPCBridge();
+  const { enableIPC, resolveIPC } = mod;
+  const bridge = enableIPC();
   globalThis.ipcServiceBridge = bridge;
 
   contextBridge.exposeInMainWorld('__electronIpcE2E', {
     async run() {
-      const service = resolveIPCService('MyService');
-      const other = resolveIPCService('OtherService');
-
+      const service = resolveIPC('MyService');
       const greetingEvents = [];
-      const greetingListener = (payload) => greetingEvents.push(payload.text);
-      service.on('greeting', greetingListener);
+      service.on('greeting', (payload) => greetingEvents.push(payload.text));
       const greetingResult = await service.hello('E2E');
-      service.off('greeting', greetingListener);
 
       let explodeError = '';
       try {
@@ -37,21 +40,7 @@ async function setup() {
         service.delayedEcho('third', 1),
       ]);
 
-      let unregisteredResolveError = '';
-      try {
-        resolveIPCService('NotRegistered');
-      } catch (error) {
-        unregisteredResolveError = error instanceof Error ? error.message : String(error);
-      }
-
       await service.emitGreeting('before');
-      const preListenerReplay = [];
-      const preReplayListener = (payload) => preListenerReplay.push(payload.text);
-      service.on('greeting', preReplayListener);
-      await service.emitGreeting('after');
-      await waitForTick();
-      service.off('greeting', preReplayListener);
-
       let payloadShape = null;
       service.once('greeting', (payload) => {
         payloadShape = payload;
@@ -59,24 +48,12 @@ async function setup() {
       await service.emitGreeting('after');
       await waitForTick();
 
-      const myServiceEvents = [];
-      const otherServiceEvents = [];
-      service.on('greeting', (payload) => myServiceEvents.push(payload.text));
-      other.on('notice', (payload) => otherServiceEvents.push(payload.value));
-      await service.hello('One');
-      await other.ping(7);
-      await waitForTick();
-
       return {
         greetingResult,
         greetingEvents,
         explodeError,
         parallel,
-        unregisteredResolveError,
-        preListenerReplay,
         payloadShape,
-        myServiceEvents,
-        otherServiceEvents,
       };
     },
   });

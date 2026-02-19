@@ -1,4 +1,4 @@
-import type { IPCService } from '../../../dist/ipc-service.js';
+import type { IPCService } from '../../../dist/index.js';
 
 export type CounterServiceEvents = {
   countUpdated: { count: number };
