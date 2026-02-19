@@ -1,9 +1,14 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { build } from 'esbuild';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { IPCService } from '../src/ipc-service.ts';
 import { createIPCService, createInMemoryEventBus, resetIPCServicesForTests } from '../src/main.ts';
 import { enableIPCBridge } from '../src/preload.ts';
 import { resetRendererBridgeForTests, resolveIPCService } from '../src/renderer.ts';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 type GreetingEvents = {
   greeting: { text: string };
@@ -487,5 +492,21 @@ describe('electron-ipc', () => {
     expect(first).toBe('first');
     expect(second).toBe('second');
     expect(third).toBe('third');
+  });
+
+  it('should produce no warnings when bundled to CJS with esbuild', async () => {
+    const entryPoint = path.resolve(__dirname, '../src/index.ts');
+    const result = await build({
+      entryPoints: [entryPoint],
+      bundle: true,
+      format: 'cjs',
+      platform: 'node',
+      write: false,
+      external: ['electron'],
+      logLevel: 'silent',
+    });
+
+    const warnings = result.warnings.map((w) => w.text);
+    expect(warnings).toEqual([]);
   });
 });
