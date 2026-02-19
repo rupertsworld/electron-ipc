@@ -1,6 +1,6 @@
 {
   "name": "@rupertsworld/electron-ipc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typed, service-oriented IPC for Electron applications.",
   "license": "MIT",
   "private": false,
