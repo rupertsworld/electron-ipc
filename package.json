@@ -3,6 +3,10 @@
   "version": "0.2.1",
   "description": "Typed, service-oriented IPC for Electron applications.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rupertsworld/electron-ipc.git"
+  },
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
